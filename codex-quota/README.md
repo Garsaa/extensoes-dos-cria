@@ -11,7 +11,7 @@ O painel **Limites** fica ao lado do chat do Codex e mostra o uso restante nas j
 - Barras de progresso para os limites de 5 horas e semanal.
 - Cores configuráveis para as barras e os textos pelo botão de aparência no painel.
 - Alerta de áudio opcional entre 70% e 80% de uso da janela de 5 horas, com intervalo mínimo de 15 minutos entre reproduções.
-- Som separado ao concluir um turno do Codex, usando o evento oficial `agent-turn-complete`.
+- Som separado ao concluir um turno do Codex, usando o hook `Stop`.
 - Horário e contagem regressiva para cada reset.
 - Saldo de resets guardados, com link para Usage & Billing quando disponível.
 - Atualização automática a cada minuto e atualização manual pelo botão **Atualizar**.
@@ -24,10 +24,10 @@ O painel **Limites** fica ao lado do chat do Codex e mostra o uso restante nas j
 
 ## Instalar pelo VSIX
 
-Baixe o arquivo [codex-quota-panel-0.3.6.vsix](dist/codex-quota-panel-0.3.6.vsix) ou, na raiz do repositório, execute:
+Baixe o arquivo [codex-quota-panel-0.3.7.vsix](dist/codex-quota-panel-0.3.7.vsix) ou, na raiz do repositório, execute:
 
 ~~~sh
-code --install-extension codex-quota/dist/codex-quota-panel-0.3.6.vsix --force
+code --install-extension codex-quota/dist/codex-quota-panel-0.3.7.vsix --force
 ~~~
 
 No VS Code, também é possível usar **Extensions** → **…** → **Install from VSIX…**. Depois, recarregue a janela e abra **Limites** junto ao chat do Codex.
@@ -40,20 +40,30 @@ A reprodução roda fora do painel para funcionar mesmo quando ele estiver fecha
 
 ## Som ao concluir um prompt
 
-O arquivo `resources/prompt-complete.mp3` pode tocar ao terminar um turno do Codex no IDE ou CLI. O Codex chama `notify-turn-complete.js` pelo evento `agent-turn-complete`; não é necessário manter o painel aberto. Adicione ao **config.toml do usuário** (`~/.codex/config.toml`, ou `$CODEX_HOME/config.toml`) uma linha de nível superior, antes de qualquer seção `[... ]`:
+O arquivo `resources/prompt-complete.mp3` pode tocar ao terminar um turno do Codex no app desktop, IDE ou CLI. Configure o hook `Stop` em `~/.codex/hooks.json` (ou `$CODEX_HOME/hooks.json`):
 
-~~~toml
-notify = ["node", "/caminho/absoluto/para/codex-quota/notify-turn-complete.js"]
+~~~json
+{
+  "hooks": {
+    "Stop": [{
+      "hooks": [{
+        "type": "command",
+        "command": "node /caminho/absoluto/para/codex-quota/stop-hook.js",
+        "timeout": 10
+      }]
+    }]
+  }
+}
 ~~~
 
-Troque o caminho pelo desta pasta e reinicie o Codex/VS Code. O comando requer Node.js e um reprodutor de áudio da seção anterior. Se já houver um `notify` configurado, combine os comandos num wrapper em vez de substituir a configuração existente. Para desligar esse som, remova ou comente a linha `notify`.
+Troque o caminho pelo desta pasta, reinicie o Codex e revise/confie no hook quando ele pedir. O comando requer Node.js e um reprodutor de áudio da seção anterior. O painel não precisa estar aberto. O switch **Tocar áudio** controla apenas o alerta de 70–80% do limite; para desligar o som de conclusão, remova o hook `Stop` acima. Se já houver hooks configurados, acrescente este comando à lista existente.
 
 ## Empacotar
 
 Com Node.js e npm instalados, execute dentro desta pasta:
 
 ~~~sh
-npm exec --yes --package=@vscode/vsce --call "vsce package --no-dependencies -o dist/codex-quota-panel-0.3.6.vsix"
+npm exec --yes --package=@vscode/vsce --call "vsce package --no-dependencies -o dist/codex-quota-panel-0.3.7.vsix"
 ~~~
 
 Ao preparar uma nova versão, atualize version no package.json e o nome do arquivo VSIX para a mesma versão.

@@ -63,7 +63,7 @@ class CodexAppServer {
       this.child.on('close', () => this.onClosed(new Error('Conexão com o Codex encerrada.')));
 
       await this.request('initialize', {
-        clientInfo: { name: 'codex-quota-panel', title: 'Codex Quota', version: '0.3.6' },
+        clientInfo: { name: 'codex-quota-panel', title: 'Codex Quota', version: '0.3.7' },
         capabilities: null,
       });
       this.child.stdin.write(JSON.stringify({ method: 'initialized', params: {} }) + '\n');
