@@ -4,6 +4,7 @@ const { spawn } = require('node:child_process');
 const vscode = require('vscode');
 const { panelHtml } = require('./panel');
 
+// A leitura periódica consulta o app-server local da extensão oficial do Codex.
 const POLL_INTERVAL_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 15_000;
 const USAGE_URL = 'https://chatgpt.com/codex/settings/usage';
