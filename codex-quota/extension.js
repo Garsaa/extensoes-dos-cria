@@ -8,6 +8,12 @@ const { panelHtml } = require('./panel');
 const POLL_INTERVAL_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 15_000;
 const USAGE_URL = 'https://chatgpt.com/codex/settings/usage';
+const APPEARANCE_KEY = 'codexQuota.appearance';
+
+function appearanceColors(value) {
+  const color = (candidate) => /^#[0-9a-f]{6}$/i.test(candidate) ? candidate : null;
+  return { bar: color(value?.bar), text: color(value?.text) };
+}
 
 function codexBinary() {
   const extension = vscode.extensions.getExtension('openai.chatgpt');
@@ -54,7 +60,7 @@ class CodexAppServer {
       this.child.on('close', () => this.onClosed(new Error('Conexão com o Codex encerrada.')));
 
       await this.request('initialize', {
-        clientInfo: { name: 'codex-quota-panel', title: 'Codex Quota', version: '0.3.3' },
+        clientInfo: { name: 'codex-quota-panel', title: 'Codex Quota', version: '0.3.4' },
         capabilities: null,
       });
       this.child.stdin.write(JSON.stringify({ method: 'initialized', params: {} }) + '\n');
@@ -170,8 +176,9 @@ function normalize(result) {
 }
 
 class QuotaViewProvider {
-  constructor(onAction) {
+  constructor(onAction, appearance) {
     this.onAction = onAction;
+    this.appearance = appearance;
     this.views = new Set();
     this.snapshot = null;
     this.error = null;
@@ -183,9 +190,22 @@ class QuotaViewProvider {
     this.views.add(view);
     view.onDidDispose(() => this.views.delete(view));
     view.webview.onDidReceiveMessage((message) => {
-      if (message.type === 'ready') this.send(view);
-      else if (message.type === 'refresh' || message.type === 'usage') this.onAction(message.type);
+      if (message.type === 'ready') {
+        this.sendAppearance(view);
+        this.send(view);
+      } else if (['refresh', 'usage', 'appearance'].includes(message.type)) {
+        this.onAction(message);
+      }
     });
+  }
+
+  updateAppearance(appearance) {
+    this.appearance = appearance;
+    for (const view of this.views) this.sendAppearance(view);
+  }
+
+  sendAppearance(view) {
+    void view.webview.postMessage({ type: 'appearance', ...this.appearance });
   }
 
   update(snapshot, error = null) {
@@ -233,10 +253,15 @@ function updateStatusBar(statusBar, snapshot, error) {
 }
 
 function activate(context) {
-  const provider = new QuotaViewProvider((action) => {
-    if (action === 'refresh') refresh();
-    if (action === 'usage') vscode.env.openExternal(vscode.Uri.parse(USAGE_URL));
-  });
+  const provider = new QuotaViewProvider((message) => {
+    if (message.type === 'refresh') refresh();
+    if (message.type === 'usage') vscode.env.openExternal(vscode.Uri.parse(USAGE_URL));
+    if (message.type === 'appearance') {
+      const appearance = appearanceColors(message);
+      provider.updateAppearance(appearance);
+      void context.globalState.update(APPEARANCE_KEY, appearance);
+    }
+  }, appearanceColors(context.globalState.get(APPEARANCE_KEY)));
   const server = new CodexAppServer();
   const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   statusBar.command = 'codexQuota.refresh';

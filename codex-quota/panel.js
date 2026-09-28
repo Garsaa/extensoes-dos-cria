@@ -15,17 +15,24 @@ function panelHtml() {
     .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
     .heading { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--vscode-descriptionForeground); }
     button { font: inherit; cursor: pointer; }
-    .refresh { border: 0; padding: 2px 6px; background: transparent; color: var(--vscode-textLink-foreground); border-radius: 4px; }
-    .refresh:hover { background: var(--vscode-toolbar-hoverBackground); }
-    .refresh:focus-visible, .credits a:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: 2px; }
+    .actions { display: flex; align-items: center; gap: 4px; }
+    .action { border: 0; padding: 2px 6px; background: transparent; color: var(--vscode-textLink-foreground); border-radius: 4px; }
+    .action:hover { background: var(--vscode-toolbar-hoverBackground); }
+    .action:focus-visible, .default:focus-visible, input:focus-visible, .credits a:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: 2px; }
+    .settings { margin: 0 0 14px; padding: 10px; border: 1px solid var(--vscode-panel-border); border-radius: 6px; background: var(--vscode-input-background); }
+    .setting { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 28px; }
+    .setting + .setting { margin-top: 5px; }
+    input[type="color"] { width: 32px; height: 24px; padding: 2px; border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); border-radius: 4px; background: transparent; cursor: pointer; }
+    .default { margin-top: 7px; padding: 0; border: 0; background: transparent; color: var(--vscode-textLink-foreground); font-size: 11px; }
+    .quota { color: var(--quota-text, var(--vscode-foreground)); }
     .quota + .quota { margin-top: 14px; }
     .line { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
     .label { font-weight: 600; }
     .value { font-size: 18px; line-height: 1.1; font-weight: 600; font-variant-numeric: tabular-nums; }
-    .unit { font-size: 11px; font-weight: 400; color: var(--vscode-descriptionForeground); }
+    .unit { font-size: 11px; font-weight: 400; color: var(--quota-text, var(--vscode-descriptionForeground)); }
     .track { height: 6px; overflow: hidden; margin-top: 6px; border-radius: 99px; background: rgba(128, 128, 128, .28); }
-    .fill { height: 100%; width: 0; border-radius: inherit; background: #e88952; transition: width .25s ease; }
-    .reset { min-height: 14px; margin: 4px 0 0; color: var(--vscode-descriptionForeground); font-size: 11px; }
+    .fill { height: 100%; width: 0; border-radius: inherit; background: var(--quota-bar, #e88952); transition: width .25s ease; }
+    .reset { min-height: 14px; margin: 4px 0 0; color: var(--quota-text, var(--vscode-descriptionForeground)); font-size: 11px; }
     .footer { border-top: 1px solid var(--vscode-panel-border); margin-top: 14px; padding-top: 8px; color: var(--vscode-descriptionForeground); font-size: 11px; }
     .credits { display: flex; justify-content: space-between; gap: 10px; }
     .credits a { color: var(--vscode-textLink-foreground); text-decoration: none; }
@@ -36,7 +43,12 @@ function panelHtml() {
   </style>
 </head>
 <body>
-  <div class="top"><h1 class="heading">Limites do Codex</h1><button class="refresh" id="refresh" type="button" title="Atualizar limites">Atualizar</button></div>
+  <div class="top"><h1 class="heading">Limites do Codex</h1><div class="actions"><button class="action" id="settings-toggle" type="button" aria-label="Cores" aria-controls="settings" aria-expanded="false" title="Cores">⚙</button><button class="action" id="refresh" type="button" title="Atualizar limites">Atualizar</button></div></div>
+  <div class="settings" id="settings" hidden>
+    <div class="setting"><label for="bar-color">Barra</label><input id="bar-color" type="color" value="#e88952"></div>
+    <div class="setting"><label for="text-color">Textos</label><input id="text-color" type="color" value="#cccccc"></div>
+    <button class="default" id="reset-colors" type="button">Restaurar cores padrão</button>
+  </div>
   <main aria-live="polite">
     <section class="quota" aria-label="Limite de 5 horas">
       <div class="line"><span class="label">5 horas</span><span class="value"><span id="five-value">—</span><span class="unit"> restante</span></span></div>
@@ -58,6 +70,39 @@ function panelHtml() {
     const vscode = acquireVsCodeApi();
     const byId = (id) => document.getElementById(id);
     byId('refresh').addEventListener('click', () => vscode.postMessage({ type: 'refresh' }));
+    byId('settings-toggle').addEventListener('click', () => {
+      const settings = byId('settings');
+      settings.hidden = !settings.hidden;
+      byId('settings-toggle').setAttribute('aria-expanded', String(!settings.hidden));
+    });
+    function themeTextColor() {
+      const channels = getComputedStyle(byId('five-value')).color.match(/\\d+/g);
+      const hex = channels?.slice(0, 3).map((value) => Number(value).toString(16).padStart(2, '0')).join('');
+      return hex?.length === 6 ? '#' + hex : '#cccccc';
+    }
+    function applyAppearance(appearance) {
+      const root = document.documentElement.style;
+      if (appearance.bar) root.setProperty('--quota-bar', appearance.bar);
+      else root.removeProperty('--quota-bar');
+      if (appearance.text) root.setProperty('--quota-text', appearance.text);
+      else root.removeProperty('--quota-text');
+      byId('bar-color').value = appearance.bar || '#e88952';
+      byId('text-color').value = appearance.text || themeTextColor();
+    }
+    let appearance = { bar: null, text: null };
+    function saveAppearance() { vscode.postMessage({ type: 'appearance', ...appearance }); }
+    for (const [id, key] of [['bar-color', 'bar'], ['text-color', 'text']]) {
+      byId(id).addEventListener('input', () => {
+        appearance[key] = byId(id).value;
+        applyAppearance(appearance);
+      });
+      byId(id).addEventListener('change', saveAppearance);
+    }
+    byId('reset-colors').addEventListener('click', () => {
+      appearance = { bar: null, text: null };
+      applyAppearance(appearance);
+      saveAppearance();
+    });
     byId('credits').addEventListener('click', (event) => {
       if (event.target.closest('a')) { event.preventDefault(); vscode.postMessage({ type: 'usage' }); }
     });
@@ -71,6 +116,11 @@ function panelHtml() {
       byId(prefix + '-reset').textContent = data?.reset || 'Horário de reset indisponível';
     }
     window.addEventListener('message', ({ data }) => {
+      if (data.type === 'appearance') {
+        appearance = { bar: data.bar, text: data.text };
+        applyAppearance(appearance);
+        return;
+      }
       if (data.type !== 'snapshot') return;
       showWindow('five', data.five);
       showWindow('week', data.week);

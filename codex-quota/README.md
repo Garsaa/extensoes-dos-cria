@@ -9,6 +9,7 @@ O painel **Limites** fica ao lado do chat do Codex e mostra o uso restante nas j
 ## Recursos
 
 - Barras de progresso para os limites de 5 horas e semanal.
+- Cores configuráveis para as barras e os textos pelo botão de aparência no painel.
 - Horário e contagem regressiva para cada reset.
 - Saldo de resets guardados, com link para Usage & Billing quando disponível.
 - Atualização automática a cada minuto e atualização manual pelo botão **Atualizar**.
@@ -21,10 +22,10 @@ O painel **Limites** fica ao lado do chat do Codex e mostra o uso restante nas j
 
 ## Instalar pelo VSIX
 
-Baixe o arquivo [codex-quota-panel-0.3.3.vsix](dist/codex-quota-panel-0.3.3.vsix) ou, na raiz do repositório, execute:
+Baixe o arquivo [codex-quota-panel-0.3.4.vsix](dist/codex-quota-panel-0.3.4.vsix) ou, na raiz do repositório, execute:
 
 ~~~sh
-code --install-extension codex-quota/dist/codex-quota-panel-0.3.3.vsix --force
+code --install-extension codex-quota/dist/codex-quota-panel-0.3.4.vsix --force
 ~~~
 
 No VS Code, também é possível usar **Extensions** → **…** → **Install from VSIX…**. Depois, recarregue a janela e abra **Limites** junto ao chat do Codex.
@@ -34,7 +35,7 @@ No VS Code, também é possível usar **Extensions** → **…** → **Install f
 Com Node.js e npm instalados, execute dentro desta pasta:
 
 ~~~sh
-npm exec --yes --package=@vscode/vsce --call "vsce package --no-dependencies -o dist/codex-quota-panel-0.3.3.vsix"
+npm exec --yes --package=@vscode/vsce --call "vsce package --no-dependencies -o dist/codex-quota-panel-0.3.4.vsix"
 ~~~
 
 Ao preparar uma nova versão, atualize version no package.json e o nome do arquivo VSIX para a mesma versão.

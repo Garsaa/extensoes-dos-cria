@@ -16,11 +16,11 @@ Este repositório reúne projetos independentes: **uma extensão por pasta**, ca
 ### Codex Quota
 
 1. Instale a extensão oficial **Codex** (`openai.chatgpt`) e entre na sua conta.
-2. Baixe [codex-quota-panel-0.3.3.vsix](codex-quota/dist/codex-quota-panel-0.3.3.vsix).
+2. Baixe [codex-quota-panel-0.3.4.vsix](codex-quota/dist/codex-quota-panel-0.3.4.vsix).
 3. No terminal, na raiz deste repositório, execute:
 
    ~~~sh
-   code --install-extension codex-quota/dist/codex-quota-panel-0.3.3.vsix --force
+   code --install-extension codex-quota/dist/codex-quota-panel-0.3.4.vsix --force
    ~~~
 
    Ou no VS Code: **Extensions** → **…** → **Install from VSIX…**.
@@ -54,7 +54,7 @@ Com Node.js e npm instalados, entre na pasta de qualquer extensão e gere um nov
 ~~~sh
 # Codex Quota
 cd codex-quota
-npm exec --yes --package=@vscode/vsce --call "vsce package --no-dependencies -o dist/codex-quota-panel-0.3.3.vsix"
+npm exec --yes --package=@vscode/vsce --call "vsce package --no-dependencies -o dist/codex-quota-panel-0.3.4.vsix"
 
 # Antigravity Quota
 cd ../antigravity-quota
