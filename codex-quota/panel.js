@@ -22,7 +22,12 @@ function panelHtml() {
     .settings { margin: 0 0 14px; padding: 10px; border: 1px solid var(--vscode-panel-border); border-radius: 6px; background: var(--vscode-input-background); }
     .setting { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 28px; }
     .setting + .setting { margin-top: 5px; }
+    .setting-note { margin: 2px 0 0; color: var(--vscode-descriptionForeground); font-size: 10px; }
     input[type="color"] { width: 32px; height: 24px; padding: 2px; border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); border-radius: 4px; background: transparent; cursor: pointer; }
+    .switch { appearance: none; position: relative; width: 30px; height: 17px; margin: 0 1px; border: 0; border-radius: 99px; background: rgba(128, 128, 128, .5); cursor: pointer; }
+    .switch::before { content: ''; position: absolute; top: 3px; left: 3px; width: 11px; height: 11px; border-radius: 50%; background: #fff; transition: transform .15s ease; }
+    .switch:checked { background: #e88952; }
+    .switch:checked::before { transform: translateX(13px); }
     .default { margin-top: 7px; padding: 0; border: 0; background: transparent; color: var(--vscode-textLink-foreground); font-size: 11px; }
     .quota { color: var(--quota-text, var(--vscode-foreground)); }
     .quota + .quota { margin-top: 14px; }
@@ -47,6 +52,8 @@ function panelHtml() {
   <div class="settings" id="settings" hidden>
     <div class="setting"><label for="bar-color">Barra</label><input id="bar-color" type="color" value="#e88952"></div>
     <div class="setting"><label for="text-color">Textos</label><input id="text-color" type="color" value="#cccccc"></div>
+    <div class="setting"><label for="audio-enabled">Tocar áudio</label><input class="switch" id="audio-enabled" type="checkbox" role="switch" aria-describedby="audio-rule"></div>
+    <p class="setting-note" id="audio-rule">Uso de 5h entre 70% e 80% · a cada 15 min</p>
     <button class="default" id="reset-colors" type="button">Restaurar cores padrão</button>
   </div>
   <main aria-live="polite">
@@ -103,6 +110,9 @@ function panelHtml() {
       applyAppearance(appearance);
       saveAppearance();
     });
+    byId('audio-enabled').addEventListener('change', () => {
+      vscode.postMessage({ type: 'audioEnabled', enabled: byId('audio-enabled').checked });
+    });
     byId('credits').addEventListener('click', (event) => {
       if (event.target.closest('a')) { event.preventDefault(); vscode.postMessage({ type: 'usage' }); }
     });
@@ -116,9 +126,10 @@ function panelHtml() {
       byId(prefix + '-reset').textContent = data?.reset || 'Horário de reset indisponível';
     }
     window.addEventListener('message', ({ data }) => {
-      if (data.type === 'appearance') {
+      if (data.type === 'preferences') {
         appearance = { bar: data.bar, text: data.text };
         applyAppearance(appearance);
+        byId('audio-enabled').checked = data.audioEnabled === true;
         return;
       }
       if (data.type !== 'snapshot') return;

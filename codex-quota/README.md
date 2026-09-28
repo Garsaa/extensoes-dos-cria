@@ -10,6 +10,7 @@ O painel **Limites** fica ao lado do chat do Codex e mostra o uso restante nas j
 
 - Barras de progresso para os limites de 5 horas e semanal.
 - Cores configuráveis para as barras e os textos pelo botão de aparência no painel.
+- Alerta de áudio opcional entre 70% e 80% de uso da janela de 5 horas, com intervalo mínimo de 15 minutos entre reproduções.
 - Horário e contagem regressiva para cada reset.
 - Saldo de resets guardados, com link para Usage & Billing quando disponível.
 - Atualização automática a cada minuto e atualização manual pelo botão **Atualizar**.
@@ -22,20 +23,26 @@ O painel **Limites** fica ao lado do chat do Codex e mostra o uso restante nas j
 
 ## Instalar pelo VSIX
 
-Baixe o arquivo [codex-quota-panel-0.3.4.vsix](dist/codex-quota-panel-0.3.4.vsix) ou, na raiz do repositório, execute:
+Baixe o arquivo [codex-quota-panel-0.3.5.vsix](dist/codex-quota-panel-0.3.5.vsix) ou, na raiz do repositório, execute:
 
 ~~~sh
-code --install-extension codex-quota/dist/codex-quota-panel-0.3.4.vsix --force
+code --install-extension codex-quota/dist/codex-quota-panel-0.3.5.vsix --force
 ~~~
 
 No VS Code, também é possível usar **Extensions** → **…** → **Install from VSIX…**. Depois, recarregue a janela e abra **Limites** junto ao chat do Codex.
+
+## Alerta de áudio
+
+No botão de aparência (⚙), ative **Tocar áudio**. O switch começa desligado. O arquivo `resources/quota-alert.mp3` toca quando o uso da janela de 5 horas estiver entre 70% e 80%, inclusive. Enquanto o uso permanecer nessa faixa, o alerta pode repetir após 15 minutos; fora dela, não toca. O intervalo é preservado ao recarregar o VS Code.
+
+A reprodução roda fora do painel para funcionar mesmo quando ele estiver fechado. No Linux, requer `ffplay` ou `mpv`; no macOS, usa `afplay` ou um desses reprodutores. No Windows, requer `ffplay` ou `mpv` no PATH.
 
 ## Empacotar
 
 Com Node.js e npm instalados, execute dentro desta pasta:
 
 ~~~sh
-npm exec --yes --package=@vscode/vsce --call "vsce package --no-dependencies -o dist/codex-quota-panel-0.3.4.vsix"
+npm exec --yes --package=@vscode/vsce --call "vsce package --no-dependencies -o dist/codex-quota-panel-0.3.5.vsix"
 ~~~
 
 Ao preparar uma nova versão, atualize version no package.json e o nome do arquivo VSIX para a mesma versão.

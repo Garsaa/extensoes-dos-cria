@@ -3,12 +3,15 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 const vscode = require('vscode');
 const { panelHtml } = require('./panel');
+const { shouldAlert, playAlert } = require('./audio-alert');
 
 // A leitura periódica consulta o app-server local da extensão oficial do Codex.
 const POLL_INTERVAL_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 15_000;
 const USAGE_URL = 'https://chatgpt.com/codex/settings/usage';
 const APPEARANCE_KEY = 'codexQuota.appearance';
+const AUDIO_ENABLED_KEY = 'codexQuota.audioEnabled';
+const AUDIO_LAST_PLAYED_KEY = 'codexQuota.audioLastPlayedAt';
 
 function appearanceColors(value) {
   const color = (candidate) => /^#[0-9a-f]{6}$/i.test(candidate) ? candidate : null;
@@ -60,7 +63,7 @@ class CodexAppServer {
       this.child.on('close', () => this.onClosed(new Error('Conexão com o Codex encerrada.')));
 
       await this.request('initialize', {
-        clientInfo: { name: 'codex-quota-panel', title: 'Codex Quota', version: '0.3.4' },
+        clientInfo: { name: 'codex-quota-panel', title: 'Codex Quota', version: '0.3.5' },
         capabilities: null,
       });
       this.child.stdin.write(JSON.stringify({ method: 'initialized', params: {} }) + '\n');
@@ -176,9 +179,10 @@ function normalize(result) {
 }
 
 class QuotaViewProvider {
-  constructor(onAction, appearance) {
+  constructor(onAction, appearance, audioEnabled) {
     this.onAction = onAction;
     this.appearance = appearance;
+    this.audioEnabled = audioEnabled;
     this.views = new Set();
     this.snapshot = null;
     this.error = null;
@@ -191,9 +195,9 @@ class QuotaViewProvider {
     view.onDidDispose(() => this.views.delete(view));
     view.webview.onDidReceiveMessage((message) => {
       if (message.type === 'ready') {
-        this.sendAppearance(view);
+        this.sendPreferences(view);
         this.send(view);
-      } else if (['refresh', 'usage', 'appearance'].includes(message.type)) {
+      } else if (['refresh', 'usage', 'appearance', 'audioEnabled'].includes(message.type)) {
         this.onAction(message);
       }
     });
@@ -201,11 +205,16 @@ class QuotaViewProvider {
 
   updateAppearance(appearance) {
     this.appearance = appearance;
-    for (const view of this.views) this.sendAppearance(view);
+    for (const view of this.views) this.sendPreferences(view);
   }
 
-  sendAppearance(view) {
-    void view.webview.postMessage({ type: 'appearance', ...this.appearance });
+  updateAudioEnabled(enabled) {
+    this.audioEnabled = enabled;
+    for (const view of this.views) this.sendPreferences(view);
+  }
+
+  sendPreferences(view) {
+    void view.webview.postMessage({ type: 'preferences', ...this.appearance, audioEnabled: this.audioEnabled });
   }
 
   update(snapshot, error = null) {
@@ -253,6 +262,27 @@ function updateStatusBar(statusBar, snapshot, error) {
 }
 
 function activate(context) {
+  let audioEnabled = context.globalState.get(AUDIO_ENABLED_KEY, false) === true;
+  let lastPlayedAt = Number(context.globalState.get(AUDIO_LAST_PLAYED_KEY, 0));
+  let alertInFlight = false;
+  let warnedMissingPlayer = false;
+  let snapshot = null;
+
+  const maybePlayAlert = (window) => {
+    if (alertInFlight || !shouldAlert(window?.usedPercent, audioEnabled, lastPlayedAt)) return;
+    alertInFlight = true;
+    void (async () => {
+      if (await playAlert()) {
+        lastPlayedAt = Date.now();
+        await context.globalState.update(AUDIO_LAST_PLAYED_KEY, lastPlayedAt);
+      } else if (!warnedMissingPlayer) {
+        warnedMissingPlayer = true;
+        void vscode.window.showWarningMessage('Áudio do Codex Quota: instale ffplay ou mpv para tocar o alerta.');
+      }
+    })().catch((error) => console.warn('Falha ao salvar alerta de áudio:', error))
+      .finally(() => { alertInFlight = false; });
+  };
+
   const provider = new QuotaViewProvider((message) => {
     if (message.type === 'refresh') refresh();
     if (message.type === 'usage') vscode.env.openExternal(vscode.Uri.parse(USAGE_URL));
@@ -261,7 +291,13 @@ function activate(context) {
       provider.updateAppearance(appearance);
       void context.globalState.update(APPEARANCE_KEY, appearance);
     }
-  }, appearanceColors(context.globalState.get(APPEARANCE_KEY)));
+    if (message.type === 'audioEnabled') {
+      audioEnabled = message.enabled === true;
+      provider.updateAudioEnabled(audioEnabled);
+      void context.globalState.update(AUDIO_ENABLED_KEY, audioEnabled);
+      if (audioEnabled) maybePlayAlert(snapshot?.fiveHours);
+    }
+  }, appearanceColors(context.globalState.get(APPEARANCE_KEY)), audioEnabled);
   const server = new CodexAppServer();
   const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   statusBar.command = 'codexQuota.refresh';
@@ -274,7 +310,6 @@ function activate(context) {
     { dispose: () => server.dispose() },
   );
 
-  let snapshot = null;
   let inFlight = null;
   const refresh = () => {
     if (inFlight) return inFlight;
@@ -286,6 +321,7 @@ function activate(context) {
         }));
         provider.update(snapshot);
         updateStatusBar(statusBar, snapshot, null);
+        maybePlayAlert(snapshot.fiveHours);
       } catch (error) {
         const message = error?.message || 'Falha desconhecida.';
         provider.update(snapshot, message);

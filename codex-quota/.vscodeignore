@@ -3,4 +3,5 @@
 .vscodeignore
 dist/**
 node_modules/**
+test/**
 *.log
