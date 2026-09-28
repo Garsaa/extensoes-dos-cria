@@ -1,5 +1,5 @@
-const path = require('node:path');
-const { spawn } = require('node:child_process');
+const path = require('path');
+const { spawn } = require('child_process');
 
 const ALERT_FILE = path.join(__dirname, 'resources', 'quota-alert.mp3');
 const COOLDOWN_MS = 15 * 60_000;
@@ -26,13 +26,13 @@ function tryPlayer(command, args) {
   });
 }
 
-async function playAlert() {
+async function playAudio(file) {
   const players = process.platform === 'darwin'
-    ? [['afplay', [ALERT_FILE]]]
+    ? [['afplay', [file]]]
     : [];
   players.push(
-    ['ffplay', ['-nodisp', '-autoexit', '-nostats', '-loglevel', 'quiet', ALERT_FILE]],
-    ['mpv', ['--no-video', '--no-terminal', '--really-quiet', ALERT_FILE]],
+    ['ffplay', ['-nodisp', '-autoexit', '-nostats', '-loglevel', 'quiet', file]],
+    ['mpv', ['--no-video', '--no-terminal', '--really-quiet', file]],
   );
   for (const [command, args] of players) {
     if (await tryPlayer(command, args)) return true;
@@ -40,4 +40,6 @@ async function playAlert() {
   return false;
 }
 
-module.exports = { COOLDOWN_MS, shouldAlert, playAlert };
+function playAlert() { return playAudio(ALERT_FILE); }
+
+module.exports = { COOLDOWN_MS, shouldAlert, playAlert, playAudio };
