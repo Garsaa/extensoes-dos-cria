@@ -11,7 +11,7 @@ O painel **Limites** fica ao lado do chat do Codex e mostra o uso restante nas j
 - Barras de progresso para os limites de 5 horas e semanal.
 - Cores configuráveis para as barras e os textos pelo botão de aparência no painel.
 - Alerta de áudio opcional entre 70% e 80% de uso da janela de 5 horas, com intervalo mínimo de 15 minutos entre reproduções.
-- Som separado ao concluir um turno do Codex, usando o hook `Stop`.
+- Som separado ao concluir um turno local do Codex, com um monitor leve para o app desktop.
 - Horário e contagem regressiva para cada reset.
 - Saldo de resets guardados, com link para Usage & Billing quando disponível.
 - Atualização automática a cada minuto e atualização manual pelo botão **Atualizar**.
@@ -24,10 +24,10 @@ O painel **Limites** fica ao lado do chat do Codex e mostra o uso restante nas j
 
 ## Instalar pelo VSIX
 
-Baixe o arquivo [codex-quota-panel-0.3.7.vsix](dist/codex-quota-panel-0.3.7.vsix) ou, na raiz do repositório, execute:
+Baixe o arquivo [codex-quota-panel-0.3.8.vsix](dist/codex-quota-panel-0.3.8.vsix) ou, na raiz do repositório, execute:
 
 ~~~sh
-code --install-extension codex-quota/dist/codex-quota-panel-0.3.7.vsix --force
+code --install-extension codex-quota/dist/codex-quota-panel-0.3.8.vsix --force
 ~~~
 
 No VS Code, também é possível usar **Extensions** → **…** → **Install from VSIX…**. Depois, recarregue a janela e abra **Limites** junto ao chat do Codex.
@@ -40,30 +40,18 @@ A reprodução roda fora do painel para funcionar mesmo quando ele estiver fecha
 
 ## Som ao concluir um prompt
 
-O arquivo `resources/prompt-complete.mp3` pode tocar ao terminar um turno do Codex no app desktop, IDE ou CLI. Configure o hook `Stop` em `~/.codex/hooks.json` (ou `$CODEX_HOME/hooks.json`):
+O arquivo `resources/prompt-complete.mp3` toca ao terminar um turno local do Codex. No Linux, `watch-completed-turns.py` observa a mudança para `completed` no histórico local (`~/.codex/thread_history_1.sqlite`) a cada segundo e reproduz o áudio uma vez por turno. Ele usa cerca de 6 MB de memória e requer Python 3, Node.js e `ffplay` ou `mpv`. O painel não precisa estar aberto.
 
-~~~json
-{
-  "hooks": {
-    "Stop": [{
-      "hooks": [{
-        "type": "command",
-        "command": "node /caminho/absoluto/para/codex-quota/stop-hook.js",
-        "timeout": 10
-      }]
-    }]
-  }
-}
-~~~
+O **VSIX sozinho não ativa o monitor**. Depois de instalá-lo no Linux, rode `python3 ~/.vscode/extensions/garsa.codex-quota-panel-0.3.8/install-completion-sound.py`. Quem clonar ou baixar o código-fonte também pode rodar `python3 install-completion-sound.py` dentro de `codex-quota`. O instalador cria e inicia um serviço de usuário do systemd que aponta para a pasta da extensão; execute-o novamente após atualizar ou mover a extensão. Para desligar: `systemctl --user disable --now codex-prompt-sound.service`.
 
-Troque o caminho pelo desta pasta, reinicie o Codex e revise/confie no hook quando ele pedir. O comando requer Node.js e um reprodutor de áudio da seção anterior. O painel não precisa estar aberto. O switch **Tocar áudio** controla apenas o alerta de 70–80% do limite; para desligar o som de conclusão, remova o hook `Stop` acima. Se já houver hooks configurados, acrescente este comando à lista existente.
+O switch **Tocar áudio** controla apenas o alerta de 70–80% do limite. O monitor usa um banco de dados interno do Codex; uma atualização do app pode mudar esse formato e exigir ajuste no script.
 
 ## Empacotar
 
 Com Node.js e npm instalados, execute dentro desta pasta:
 
 ~~~sh
-npm exec --yes --package=@vscode/vsce --call "vsce package --no-dependencies -o dist/codex-quota-panel-0.3.7.vsix"
+npm exec --yes --package=@vscode/vsce --call "vsce package --no-dependencies -o dist/codex-quota-panel-0.3.8.vsix"
 ~~~
 
 Ao preparar uma nova versão, atualize version no package.json e o nome do arquivo VSIX para a mesma versão.

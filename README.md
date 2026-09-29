@@ -16,15 +16,17 @@ Este repositório reúne projetos independentes: **uma extensão por pasta**, ca
 ### Codex Quota
 
 1. Instale a extensão oficial **Codex** (`openai.chatgpt`) e entre na sua conta.
-2. Baixe [codex-quota-panel-0.3.7.vsix](codex-quota/dist/codex-quota-panel-0.3.7.vsix).
+2. Baixe [codex-quota-panel-0.3.8.vsix](codex-quota/dist/codex-quota-panel-0.3.8.vsix).
 3. No terminal, na raiz deste repositório, execute:
 
    ~~~sh
-   code --install-extension codex-quota/dist/codex-quota-panel-0.3.7.vsix --force
+   code --install-extension codex-quota/dist/codex-quota-panel-0.3.8.vsix --force
    ~~~
 
    Ou no VS Code: **Extensions** → **…** → **Install from VSIX…**.
 4. Recarregue a janela e abra o painel **Limites** junto ao Codex.
+
+O som ao concluir um prompt requer uma instalação separada no Linux: veja [Som ao concluir um prompt](codex-quota/README.md#som-ao-concluir-um-prompt). O VSIX sozinho oferece o painel e o alerta opcional de 70–80% do limite.
 
 ### Antigravity Quota
 
@@ -54,7 +56,7 @@ Com Node.js e npm instalados, entre na pasta de qualquer extensão e gere um nov
 ~~~sh
 # Codex Quota
 cd codex-quota
-npm exec --yes --package=@vscode/vsce --call "vsce package --no-dependencies -o dist/codex-quota-panel-0.3.7.vsix"
+npm exec --yes --package=@vscode/vsce --call "vsce package --no-dependencies -o dist/codex-quota-panel-0.3.8.vsix"
 
 # Antigravity Quota
 cd ../antigravity-quota
