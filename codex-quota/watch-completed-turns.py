@@ -2,6 +2,7 @@
 """Play the completion sound for local Codex turns recorded in its history."""
 
 import logging
+import json
 import os
 import shutil
 import sqlite3
@@ -12,6 +13,7 @@ from pathlib import Path
 
 CODEX_HOME = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
 HISTORY_DB = CODEX_HOME / "thread_history_1.sqlite"
+PREFERENCE_FILE = CODEX_HOME / "codex-quota-audio.json"
 PLAYER = Path(__file__).with_name("notify-turn-complete.js")
 NODE = os.environ.get("CODEX_QUOTA_NODE") or shutil.which("node")
 LOOKBACK_SECONDS = 300
@@ -25,6 +27,13 @@ def completed_turns(connection, since):
         "ORDER BY completed_at, turn_id",
         (since,),
     ).fetchall()
+
+
+def audio_enabled(preference_file=PREFERENCE_FILE):
+    try:
+        return json.loads(preference_file.read_text()).get("enabled") is True
+    except (OSError, ValueError, AttributeError):
+        return False
 
 
 def play_sound():
@@ -69,6 +78,8 @@ def watch():
             if turn_id in seen:
                 continue
             seen[turn_id] = completed_at
+            if not audio_enabled():
+                continue
             logging.info("Playing completion sound for turn %s", turn_id)
             try:
                 play_sound()

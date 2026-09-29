@@ -53,7 +53,7 @@ function panelHtml() {
     <div class="setting"><label for="bar-color">Barra</label><input id="bar-color" type="color" value="#e88952"></div>
     <div class="setting"><label for="text-color">Textos</label><input id="text-color" type="color" value="#cccccc"></div>
     <div class="setting"><label for="audio-enabled">Tocar áudio</label><input class="switch" id="audio-enabled" type="checkbox" role="switch" aria-describedby="audio-rule"></div>
-    <p class="setting-note" id="audio-rule">Uso de 5h entre 70% e 80% · a cada 15 min</p>
+    <p class="setting-note" id="audio-rule">Alerta de 5h entre 70% e 80% · som ao concluir prompt</p>
     <button class="default" id="reset-colors" type="button">Restaurar cores padrão</button>
   </div>
   <main aria-live="polite">

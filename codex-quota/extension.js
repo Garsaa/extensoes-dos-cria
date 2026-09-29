@@ -4,6 +4,7 @@ const { spawn } = require('node:child_process');
 const vscode = require('vscode');
 const { panelHtml } = require('./panel');
 const { shouldAlert, playAlert } = require('./audio-alert');
+const { readAudioEnabled, writeAudioEnabled } = require('./audio-preference');
 
 // A leitura periódica consulta o app-server local da extensão oficial do Codex.
 const POLL_INTERVAL_MS = 60_000;
@@ -63,7 +64,7 @@ class CodexAppServer {
       this.child.on('close', () => this.onClosed(new Error('Conexão com o Codex encerrada.')));
 
       await this.request('initialize', {
-        clientInfo: { name: 'codex-quota-panel', title: 'Codex Quota', version: '0.3.8' },
+        clientInfo: { name: 'codex-quota-panel', title: 'Codex Quota', version: '0.3.9' },
         capabilities: null,
       });
       this.child.stdin.write(JSON.stringify({ method: 'initialized', params: {} }) + '\n');
@@ -262,7 +263,10 @@ function updateStatusBar(statusBar, snapshot, error) {
 }
 
 function activate(context) {
-  let audioEnabled = context.globalState.get(AUDIO_ENABLED_KEY, false) === true;
+  let audioEnabled = readAudioEnabled(context.globalState.get(AUDIO_ENABLED_KEY, false) === true);
+  try { writeAudioEnabled(audioEnabled); } catch (error) {
+    console.warn('Falha ao compartilhar a preferência de áudio:', error);
+  }
   let lastPlayedAt = Number(context.globalState.get(AUDIO_LAST_PLAYED_KEY, 0));
   let alertInFlight = false;
   let warnedMissingPlayer = false;
@@ -295,6 +299,9 @@ function activate(context) {
       audioEnabled = message.enabled === true;
       provider.updateAudioEnabled(audioEnabled);
       void context.globalState.update(AUDIO_ENABLED_KEY, audioEnabled);
+      try { writeAudioEnabled(audioEnabled); } catch (error) {
+        console.warn('Falha ao compartilhar a preferência de áudio:', error);
+      }
       if (audioEnabled) maybePlayAlert(snapshot?.fiveHours);
     }
   }, appearanceColors(context.globalState.get(APPEARANCE_KEY)), audioEnabled);

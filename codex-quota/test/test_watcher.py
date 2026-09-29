@@ -1,5 +1,8 @@
 import importlib.util
+import os
 import sqlite3
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -34,6 +37,19 @@ class CompletedTurnsTest(unittest.TestCase):
             WATCHER.completed_turns(connection, 50),
             [("done", 100), ("running", 101)],
         )
+
+    def test_switch_preference_controls_completion_sound(self):
+        with tempfile.TemporaryDirectory() as directory:
+            preference = Path(directory) / "codex-quota-audio.json"
+            self.assertFalse(WATCHER.audio_enabled(preference))
+            for enabled in (True, False):
+                subprocess.run(
+                    ["node", "-e", "require('./audio-preference').writeAudioEnabled(process.argv[1] === 'true')", str(enabled).lower()],
+                    cwd=SCRIPT.parent,
+                    env={**os.environ, "CODEX_HOME": directory},
+                    check=True,
+                )
+                self.assertIs(WATCHER.audio_enabled(preference), enabled)
 
 
 if __name__ == "__main__":
